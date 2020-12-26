@@ -1,0 +1,21 @@
+import { config } from "dotenv";
+config();
+export const {
+  SERVER_PORT,
+  MONGO_URI_DEV,
+  MONGO_URI_PROD,
+  CORS_URL,
+  NODE_ENV,
+  ACCESS_TOKEN_SECRET,
+  REFRESH_TOKEN_SECRET,
+  GMAIL_USER_NAME,
+  MAIL_SERVICE_NAME,
+  GMAIL_SERVICE_HOST,
+  GMAIL_SERVICE_PORT,
+  GMAIL_USER_PASSWORD,
+  GMAIL_SERVICE_SECURE,
+  // GOOGLE_CLIENT_ID,
+  // GOOGLE_CLIENT_SECRET,
+} = process.env as {
+  [key: string]: string;
+};
