@@ -1,7 +1,12 @@
 import { gql } from "apollo-server-express";
 import { IResolvers } from "graphql-tools";
 import { User as UserModel, UserDoc } from "../models/user.model";
-import { hashPassword, assignToken, verifyPassword } from "../helpers/auth";
+import {
+  hashPassword,
+  assignToken,
+  verifyPassword,
+  verifyToken,
+} from "../helpers/auth";
 import {
   AuthError,
   InternalError,
@@ -18,7 +23,15 @@ interface IUser {
   lastname?: string;
   email?: string;
 }
+interface Tokens {
+  accessToken?: string;
+  refreshToken?: string;
+}
 export const typeDefs = gql`
+  type Tokens {
+    accessToken: String
+    refreshToken: String
+  }
   type User {
     id: ID!
     firstname: String!
@@ -41,7 +54,7 @@ export const typeDefs = gql`
       password: String!
       password2: String!
     ): Boolean!
-    login(email: String!, password: String!): User!
+    login(email: String!, password: String!): String
     confirm(token: String): Boolean!
   }
 `;
@@ -102,19 +115,14 @@ export const resolvers: IResolvers = {
       { email, password },
       context,
       info
-    ): Promise<object> => {
+    ): Promise<string> => {
       try {
         let user = await UserModel.findOne({ email });
         if (!user) throw new NotFoundError("User");
         const passwordMatched = await verifyPassword(password, user.password);
         if (!passwordMatched) throw new AuthError("Not authenticated");
-        const accessToken = await assignToken(
-          user._id,
-          ACCESS_TOKEN_SECRET,
-          "5m"
-        );
-        // TODO: implement refresh token
-        return { accessToken: accessToken };
+        const token = await assignToken(user._id, ACCESS_TOKEN_SECRET, "5m");
+        return token;
       } catch (error) {
         throw new AuthError(error.message);
       }
