@@ -34,6 +34,12 @@ const UserSchema = new Schema({
   emailToken: {
     type: String,
   },
+  smsToken: {
+    type: Number,
+  },
+  smsTokenValidity: {
+    type: Number,
+  },
   emailTokenValidity: {
     type: Number,
   },
@@ -57,6 +63,8 @@ export interface UserDoc extends Document {
   email?: string;
   emailToken?: string;
   emailTokenValidity?: number | null;
+  smsToken?: number | null;
+  smsTokenValidity?: number | null;
   googleId?: string;
   phone?: number;
   confirmed?: boolean;

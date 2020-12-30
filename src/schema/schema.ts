@@ -14,9 +14,14 @@ import {
   ExpiredTokenError,
 } from "../utils/ApiError";
 import Mailer from "../utils/Mail";
+import Sms from "../utils/Sms";
 import Validator from "../utils/Validator";
 import { randomBytes } from "crypto";
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from "../config/config";
+enum verificationMethods {
+  email = "email",
+  phone = "phone",
+}
 interface IUser {
   id?: string;
   firstname?: string;
@@ -28,6 +33,10 @@ interface Tokens {
   refreshToken?: string;
 }
 export const typeDefs = gql`
+  type VerificationMethods {
+    email: String
+    phone: String
+  }
   type Tokens {
     accessToken: String
     refreshToken: String
@@ -53,9 +62,10 @@ export const typeDefs = gql`
       phone: String!
       password: String!
       password2: String!
+      verificationMethod: VerificationMethods!
     ): Boolean!
     login(email: String!, password: String!): String
-    confirm(token: String): Boolean!
+    confirmEmail(token: String): Boolean!
   }
 `;
 
@@ -74,7 +84,15 @@ export const resolvers: IResolvers = {
   Mutation: {
     signup: async (
       parent,
-      { firstname, lastname, email, phone, password, password2 },
+      {
+        firstname,
+        lastname,
+        email,
+        phone,
+        password,
+        password2,
+        verificationMethod,
+      },
       context,
       info
     ): Promise<boolean> => {
@@ -87,24 +105,44 @@ export const resolvers: IResolvers = {
           throw new AuthError("password must be of valid format");
         if (!validEmail) throw new AuthError("invalid email");
         if (password !== password2) throw new AuthError("passwords must match");
+        if (!verificationMethod)
+          throw new Error("a verification method is required");
         let user = await UserModel.findOne({ email: email });
         if (user) throw new AuthError("user already exist");
         const hashedPassword = await hashPassword(password, 10);
-        const token: string = randomBytes(20).toString("hex");
-        const oneDay: number = 86400000;
-        const expirationTime: number = +(Date.now() + oneDay);
         user = new UserModel({
           firstname,
           lastname,
           email,
           phone,
           password: hashedPassword,
-          emailToken: token,
-          emailTokenValidity: expirationTime,
         });
-        const saved = await user.save();
-        if (!saved) throw new InternalError();
-        await Mailer.sendConfirmationMail(email, token);
+        switch (verificationMethod) {
+          case email:
+            let mailToken: string = randomBytes(20).toString("hex");
+            let oneDay: number = 86400000;
+            let expirationTime: number = +(Date.now() + oneDay);
+            const isMailSent = await Mailer.sendConfirmationMail(
+              user.email!,
+              mailToken
+            );
+            if (!isMailSent) throw new Error("Mailing failed");
+            (user.emailToken = mailToken),
+              (user.emailTokenValidity = expirationTime);
+            break;
+          case phone:
+            let smsToken = Math.floor(100000 + Math.random() * 900000);
+            expirationTime = +(Date.now() + 30000);
+            const isSmsSent = await Sms.send(phone, smsToken);
+            if (!isSmsSent) throw new Error("Sms failed");
+            user.smsToken = smsToken;
+            user.smsTokenValidity = expirationTime;
+            break;
+          default:
+            throw new Error("a verification method is required");
+            break;
+        }
+        await user.save();
         return true;
       } catch (error) {
         throw new AuthError(error.message);
@@ -127,7 +165,12 @@ export const resolvers: IResolvers = {
         throw new AuthError(error.message);
       }
     },
-    confirm: async (parent, { token }, context, info): Promise<boolean> => {
+    confirmEmail: async (
+      parent,
+      { token },
+      context,
+      info
+    ): Promise<boolean> => {
       try {
         const user: any = await UserModel.findOne({
           emailToken: token,
@@ -139,6 +182,23 @@ export const resolvers: IResolvers = {
         }
         user.emailTokenValidity = null;
         user.emailToken = "";
+        user.confirmed = true;
+        await user.save();
+        return true;
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    },
+    confirmSms: async (parent, { token }, context, info): Promise<boolean> => {
+      try {
+        const user = await UserModel.findOne({ smsToken: token });
+        if (!user) throw new NotFoundError("User");
+        if (user.smsTokenValidity && user.smsTokenValidity < Date.now()) {
+          user.smsTokenValidity = null;
+          throw new ExpiredTokenError();
+        }
+        user.smsTokenValidity = null;
+        user.smsToken = null;
         user.confirmed = true;
         await user.save();
         return true;
