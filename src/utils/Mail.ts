@@ -35,7 +35,7 @@ export default class Mailer {
     }
   }
 
-  static async resendCOnfirmationMail(
+  static async resendConfirmationMail(
     email: string,
     token: string
   ): Promise<boolean> {
