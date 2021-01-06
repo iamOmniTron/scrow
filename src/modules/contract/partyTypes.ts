@@ -1,36 +1,52 @@
-// abstract class PartyType {
-//   constructor(agreed: boolean) {}
-//   abstract settled: boolean;
-//   abstract settle(): boolean;
-//   abstract fileDispute(): boolean;
-// }
-//
-// export class Seller extends PartyType {
-//   constructor(agreed: boolean) {
-//     super(agreed);
-//     this.agreed = agreed;
-//     super.settled = false;
-//   }
-//   settle(party: Buyer): boolean {
-//     // TODO: make delivery here
-//     return (party.settled = true);
-//   }
-//   fileDispute(disputeOptions: any): bolean {
-//     return true;
-//   }
-// }
-//
-// export class Buyer extends PartyType {
-//   constructor(agreed: boolean) {
-//     super(agreed, settled);
-//     this.agreed = agreed;
-//     this.settled = false;
-//   }
-//   settle(party: Seller): boolean {
-//     // TODO: add payment method
-//     return (party.settled = true);
-//   }
-//   fileDispute(disputeOptions: any): boolean {
-//     return true;
-//   }
-// }
+import { Promisor, Promisee } from "./contractPartyTypes";
+
+export abstract class PartyTypes {
+  //either a seller or a Buyer must have a settle method and settle member
+  protected settle(client: Promisor | Promisee): boolean {
+    return false;
+  }
+  // public settled: boolean = false;
+}
+
+export class Seller extends PartyTypes {
+  constructor(public agreed: boolean) {
+    super();
+  }
+  settle(client: Promisor | Promisee): boolean {
+    try {
+      if (this.agreed !== true) {
+        throw new Error(
+          "you have to reach an agreement before you sell anything"
+        );
+        return false;
+      }
+      //request for account details
+      client.settled = true;
+      return true;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+}
+
+export class Buyer extends PartyTypes {
+  constructor(public agreed: boolean) {
+    super();
+  }
+
+  settle(client: Promisor | Promisee): boolean {
+    try {
+      if (this.agreed !== true) {
+        throw new Error(
+          "you have to reach an agreement before you buy anything"
+        );
+        return false;
+      }
+      //make payment logic here
+      client.settled = true;
+      return true;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+}
