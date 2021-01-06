@@ -18,24 +18,11 @@ import Sms from "../utils/Sms";
 import Validator from "../utils/Validator";
 import { randomBytes } from "crypto";
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from "../config/config";
-enum verificationMethods {
-  email = "email",
-  phone = "phone",
-}
-interface IUser {
-  id?: string;
-  firstname?: string;
-  lastname?: string;
-  email?: string;
-}
-interface Tokens {
-  accessToken?: string;
-  refreshToken?: string;
-}
+
 export const typeDefs = gql`
-  type VerificationMethods {
-    email: String
-    phone: String
+  enum VerificationMethods {
+    EMAIL
+    PHONE
   }
   type Tokens {
     accessToken: String
@@ -48,11 +35,14 @@ export const typeDefs = gql`
     email: String!
     phone: String!
     emailToken: String!
+    confirmed: Boolean!
+    smsToken: Int!
   }
   type Query {
     users: [User!]
     user(id: ID!): User
     hello: String
+    login(email: String!, password: String!): String!
   }
   type Mutation {
     signup(
@@ -64,11 +54,15 @@ export const typeDefs = gql`
       password2: String!
       verificationMethod: VerificationMethods!
     ): Boolean!
-    login(email: String!, password: String!): String
     confirmEmail(token: String): Boolean!
+    confirmSms(token: String): Boolean!
   }
 `;
 
+enum VerificationMethods {
+  EMAIL,
+  PHONE,
+}
 export const resolvers: IResolvers = {
   Query: {
     users: async (parent, args, { req }, info): Promise<UserDoc[]> => {
@@ -80,7 +74,25 @@ export const resolvers: IResolvers = {
       return await UserModel.findOne({ _id: args.id });
     },
     hello: (): string => `world`,
+    login: async (
+      parent,
+      { email, password },
+      context,
+      info
+    ): Promise<string> => {
+      try {
+        let user = await UserModel.findOne({ email });
+        if (!user) throw new NotFoundError("User");
+        const passwordMatched = await verifyPassword(password, user.password);
+        if (!passwordMatched) throw new AuthError("Not authenticated");
+        const token = await assignToken(user._id, ACCESS_TOKEN_SECRET, "5m");
+        return token;
+      } catch (error) {
+        throw new AuthError(error.message);
+      }
+    },
   },
+
   Mutation: {
     signup: async (
       parent,
@@ -118,49 +130,32 @@ export const resolvers: IResolvers = {
           password: hashedPassword,
         });
         switch (verificationMethod) {
-          case email:
+          case "EMAIL":
             let mailToken: string = randomBytes(20).toString("hex");
             let oneDay: number = 86400000;
-            let expirationTime: number = +(Date.now() + oneDay);
+            let mailExpirationTime: number = +(Date.now() + oneDay);
             const isMailSent = await Mailer.sendConfirmationMail(
               user.email!,
               mailToken
             );
             if (!isMailSent) throw new Error("Mailing failed");
             (user.emailToken = mailToken),
-              (user.emailTokenValidity = expirationTime);
+              (user.emailTokenValidity = mailExpirationTime);
             break;
-          case phone:
+          case "PHONE":
             let smsToken = Math.floor(100000 + Math.random() * 900000);
-            expirationTime = +(Date.now() + 30000);
+            let smsExpirationTime = +(Date.now() + 45000); //45 seconds from now;
             const isSmsSent = await Sms.send(phone, smsToken);
             if (!isSmsSent) throw new Error("Sms failed");
             user.smsToken = smsToken;
-            user.smsTokenValidity = expirationTime;
+            user.smsTokenValidity = smsExpirationTime;
             break;
           default:
-            throw new Error("a verification method is required");
+            throw new Error(" default issue");
             break;
         }
         await user.save();
         return true;
-      } catch (error) {
-        throw new AuthError(error.message);
-      }
-    },
-    login: async (
-      parent,
-      { email, password },
-      context,
-      info
-    ): Promise<string> => {
-      try {
-        let user = await UserModel.findOne({ email });
-        if (!user) throw new NotFoundError("User");
-        const passwordMatched = await verifyPassword(password, user.password);
-        if (!passwordMatched) throw new AuthError("Not authenticated");
-        const token = await assignToken(user._id, ACCESS_TOKEN_SECRET, "5m");
-        return token;
       } catch (error) {
         throw new AuthError(error.message);
       }
@@ -194,7 +189,6 @@ export const resolvers: IResolvers = {
         const user = await UserModel.findOne({ smsToken: token });
         if (!user) throw new NotFoundError("User");
         if (user.smsTokenValidity && user.smsTokenValidity < Date.now()) {
-          user.smsTokenValidity = null;
           throw new ExpiredTokenError();
         }
         user.smsTokenValidity = null;
