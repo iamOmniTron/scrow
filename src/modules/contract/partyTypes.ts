@@ -30,6 +30,7 @@ export class Seller extends PartyTypes {
 }
 
 export class Buyer extends PartyTypes {
+  public itemDelivered: boolean = false;
   constructor(public agreed: boolean) {
     super();
   }
@@ -48,5 +49,9 @@ export class Buyer extends PartyTypes {
     } catch (error) {
       throw new Error(error.message);
     }
+  }
+  markItemAsDelievered() {
+    //seen the product
+    this.itemDelivered = true;
   }
 }

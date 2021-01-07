@@ -32,10 +32,13 @@ export class Promisor {
     }
   }
 
-  public settle(client: Promisee) {
+  public settle(client: Promisee, contract: Contract) {
     return this.partyType.settle(client);
+    if (this.settled) contract.resolved = true;
   }
-
+  public agree() {
+    this.agreed = true;
+  }
   // TODO: add notification and send to admin for disputes
   public async fileDispute(
     options: IDispute,

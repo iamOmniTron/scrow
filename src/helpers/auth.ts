@@ -1,12 +1,13 @@
 import { AuthError, InternalError, TokenError } from "../utils/ApiError";
 import * as jwt from "jsonwebtoken";
 import { hash, compare } from "bcrypt";
-export interface UserId {
-  userId: string;
-}
 
+interface IJwtData {
+  userId: string;
+  exp: number;
+}
 export const assignToken = async (
-  userId: UserId,
+  userId: string,
   secret: string,
   expiration: string
 ): Promise<string> => {
@@ -14,9 +15,8 @@ export const assignToken = async (
     const token: string = await jwt.sign({ userId }, secret, {
       expiresIn: expiration,
     });
-    if (!token) {
-      throw new InternalError();
-    }
+    if (!token) throw new InternalError();
+
     return token;
   } catch (error) {
     throw new InternalError();
@@ -28,11 +28,11 @@ export const verifyToken = async (
   secret: string
 ): Promise<any> => {
   try {
-    const userId = await jwt.verify(token, secret);
-    if (!userId) {
+    const jwtData: any = await jwt.verify(token, secret);
+    if (!jwtData.userId) {
       throw new TokenError("token is invalid");
     }
-    return userId;
+    return jwtData.userId;
   } catch (error) {
     throw new AuthError("failed to authenticate user!");
   }

@@ -82,7 +82,7 @@ const ContractSchema = new Schema({
 export interface IContractPartyTypes {
   id: string;
   settled: boolean;
-  PartyType: string;
+  partyType: string;
   agreed: boolean;
 }
 
