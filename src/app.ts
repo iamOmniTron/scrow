@@ -18,7 +18,7 @@ import { ApolloServer } from "apollo-server-express";
 import compression from "compression";
 import { typeDefs, resolvers } from "./schema/schema";
 const MONGO_URI = NODE_ENV === "development" ? MONGO_URI_PROD : MONGO_URI_DEV;
-connect(MONGO_URI_DEV, {
+connect(MONGO_URI_PROD, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   useCreateIndex: true,
