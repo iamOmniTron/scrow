@@ -36,28 +36,34 @@ app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(logger("dev"));
 
-// const auth = (req: any, res: Response, next: NextFunction) => {
-//   if (typeof req.headers.authorization !== "string") return next();
-//
-//   const header = req.headers.authorization!;
-//   const token = header.replace("Bearer ", "");
-//   try {
-//     const jwtData: any = jwt.verify(token, ACCESS_TOKEN_SECRET);
-//     if (jwtData && jwtData.userId!) {
-//       req.userId = jwtData.userId;
-//     } else {
-//       throw new AuthError("User");
-//     }
-//   } catch (err) {
-//     throw new AccessTokenError();
-//   }
-//   return next();
-// };
-// app.use(auth);
+const auth = (req: any, res: Response, next: NextFunction) => {
+  const header = req.headers.authorization!;
+  if (typeof header !== "string") {
+    req.isAuth = false;
+    req.userId = null;
+    return next();
+  }
+  const token = header.replace("Bearer ", "");
+  if (token === "") {
+    req.isAuth = false;
+    req.userId = null;
+    return next();
+  }
+  const jwtData: any = jwt.verify(token, ACCESS_TOKEN_SECRET);
+  if (!jwtData && jwtData.userId) {
+    req.isAuth = false;
+    req.userId = null;
+    return next();
+  }
+  req.isAuth = true;
+  req.userId = jwtData.userId;
+  next();
+};
+app.use(auth);
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req, res }: any) => ({ req, res }),
+  context: ({ req, res }: any) => ({ req }),
 });
 server.applyMiddleware({ app, path: "/graphql" });
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
