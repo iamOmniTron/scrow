@@ -19,6 +19,12 @@ import Validator from "../utils/Validator";
 import { randomBytes } from "crypto";
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from "../config/config";
 
+interface LoginResponse {
+  firstname: string;
+  lastname: string;
+  email: string;
+  token: string;
+}
 export const typeDefs = gql`
   enum VerificationMethods {
     EMAIL
@@ -28,21 +34,25 @@ export const typeDefs = gql`
     accessToken: String
     refreshToken: String
   }
+  type LoginResponse {
+    firstname: String!
+    lastname: String!
+    email: String!
+    token: String!
+  }
   type User {
     id: ID!
     firstname: String!
     lastname: String!
     email: String!
     phone: String!
-    emailToken: String!
-    confirmed: Boolean!
-    smsToken: Int!
   }
   type Query {
     users: [User!]
-    user(id: ID!): User
-    hello: String
+    user(id: ID!): User!
+    hello: String!
     login(email: String!, password: String!): String!
+    profile: User!
   }
   type Mutation {
     signup(
@@ -66,12 +76,24 @@ enum VerificationMethods {
 export const resolvers: IResolvers = {
   Query: {
     users: async (parent, args, { req }, info): Promise<UserDoc[]> => {
-      //// TODO: make auth checks
-      return await UserModel.find({});
+      try {
+        const { isAuth, userId } = req;
+        if (!isAuth && userId == null) throw new AuthError("unauthenticated");
+
+        return await UserModel.find({});
+      } catch (error) {
+        throw new Error(error.message);
+      }
     },
-    user: async (parent, args, { req }, info): Promise<UserDoc | null> => {
-      //// TODO: make auth checks
-      return await UserModel.findOne({ _id: args.id });
+    user: async (parent, { id }, { req }, info): Promise<UserDoc | null> => {
+      try {
+        const { isAuth, userId } = req;
+        if (!isAuth && userId == null) throw new AuthError("unauthenticated");
+
+        return await UserModel.findOne({ _id: id });
+      } catch (error) {
+        throw new Error(error.message);
+      }
     },
     hello: (): string => `world`,
     login: async (
@@ -79,23 +101,47 @@ export const resolvers: IResolvers = {
       { email, password },
       context,
       info
-    ): Promise<string> => {
+    ): Promise<LoginResponse | null> => {
       try {
         let user = await UserModel.findOne({ email });
         if (!user) throw new NotFoundError("User");
+        if (!user.confirmed)
+          throw new AuthError("you need to confirm your email");
         const passwordMatched = await verifyPassword(password, user.password);
         if (!passwordMatched) throw new AuthError("Not authenticated");
         const token = await assignToken(user._id, ACCESS_TOKEN_SECRET, "5m");
-        return token;
+        return {
+          firstname: user.firstname!,
+          lastname: user.lastname!,
+          email: user.email!,
+          token: token,
+        };
       } catch (error) {
         throw new AuthError(error.message);
+      }
+    },
+    profile: async (_, __, { req }, info): Promise<UserDoc | null> => {
+      const { userId, isAuth } = req;
+      try {
+        if (!isAuth && userId == null) {
+          throw new AuthError("unauthenticated");
+          return null;
+        }
+        const user = await UserModel.findOne({ _id: userId });
+        if (!user) {
+          throw new AuthError("unauthorized");
+          return null;
+        }
+        return user;
+      } catch (error) {
+        throw new Error(error.message);
       }
     },
   },
 
   Mutation: {
     signup: async (
-      parent,
+      _,
       {
         firstname,
         lastname,
