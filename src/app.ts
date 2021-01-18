@@ -1,7 +1,5 @@
 import express, { Request, Response, NextFunction, Application } from "express";
 import {
-  MONGO_URI_DEV,
-  MONGO_URI_PROD,
   NODE_ENV,
   CORS_URL,
   ACCESS_TOKEN_SECRET,
@@ -17,17 +15,7 @@ import { connect } from "mongoose";
 import { ApolloServer } from "apollo-server-express";
 import compression from "compression";
 import { typeDefs, resolvers } from "./schema/schema";
-const MONGO_URI = NODE_ENV === "development" ? MONGO_URI_PROD : MONGO_URI_DEV;
-connect(MONGO_URI_PROD, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  useCreateIndex: true,
-  useFindAndModify: false,
-})
-  .then(() => console.log(`Connected to mongodb`))
-  .catch((error) => {
-    console.log(error.message);
-  });
+require('./_dbinit')();
 const app: Application = express();
 
 app.use(compression());
