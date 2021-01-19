@@ -75,7 +75,7 @@ enum VerificationMethods {
 }
 export const resolvers: IResolvers = {
   Query: {
-    users: async (parent, args, { req }, info): Promise<UserDoc[]> => {
+    users: async (_, __, { req }, info): Promise<UserDoc[]> => {
       try {
         const { isAuth, userId } = req;
         if (!isAuth && userId == null) throw new AuthError("unauthenticated");
@@ -85,7 +85,7 @@ export const resolvers: IResolvers = {
         throw new Error(error.message);
       }
     },
-    user: async (parent, { id }, { req }, info): Promise<UserDoc | null> => {
+    user: async (_, { id }, { req }, info): Promise<UserDoc | null> => {
       try {
         const { isAuth, userId } = req;
         if (!isAuth && userId == null) throw new AuthError("unauthenticated");
@@ -97,7 +97,7 @@ export const resolvers: IResolvers = {
     },
     hello: (): string => `world`,
     login: async (
-      parent,
+      _,
       { email, password },
       context,
       info
@@ -206,12 +206,7 @@ export const resolvers: IResolvers = {
         throw new AuthError(error.message);
       }
     },
-    confirmEmail: async (
-      parent,
-      { token },
-      context,
-      info
-    ): Promise<boolean> => {
+    confirmEmail: async (_, { token }, context, info): Promise<boolean> => {
       try {
         const user: any = await UserModel.findOne({
           emailToken: token,
@@ -230,7 +225,7 @@ export const resolvers: IResolvers = {
         throw new Error(error.message);
       }
     },
-    confirmSms: async (parent, { token }, context, info): Promise<boolean> => {
+    confirmSms: async (_, { token }, context, info): Promise<boolean> => {
       try {
         const user = await UserModel.findOne({ smsToken: token });
         if (!user) throw new NotFoundError("User");
