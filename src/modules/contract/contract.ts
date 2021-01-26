@@ -1,114 +1,132 @@
-import Promisor from "./contractPartyTypes/promisor";
-import Promisee from "./contractPartyTypes/promisee";
-import Buyer from "./partyTypes/Buyer";
-import Seller from "./partyTypes/Seller";
 import {
-  Contract as ContractModel,
-  ContractDoc,
-} from "../../models/contract.model";
+  TransactionStatuses as STATUS,
+  ContractResponse as Response,
+  TransactionMessages as MESSAGE,
+  IDispute,
+} from "./constants";
+import { ContractDoc } from "../../models/contract.model";
 import { Dispute, DisputeDoc } from "../../models/dispute.model";
-import {
-  dateToMilliSeconds,
-  millisecondsToDate,
-} from "../../helpers/stringHelpers";
-import { IContractConstructor } from "./constants";
-//
-// // export interface IContract{
-// //   promisor:IContractPartyTypes;
-// //   promisee:
-// // }
-// export default class Contract {
-//   public contractId: string;
-//   public promisor: Promisor; //add promisee
-//   public promisee!: Promisee;
-//   public deadline: number;
-//   public createdAt: number;
-//   public disputes: Array<DisputeDoc> = [];
-//   public readonly refUrl: string;
-//   public itemInvolved: string;
-//   public amountInvolved: number;
-//   public declined: boolean = false;
-//   public agreementReached = false; //if both party's agreed
-//   public refToken: number = Math.floor(100000 + Math.random() * 900000);
-//   public resolved: boolean = false; //if both parties are settled
-//   constructor(options: IContractConstructor) {
-//     this.promisor = new Promisor(
-//       options.userId,
-//       options.agreed,
-//       options.partyType
-//     );
-//     this.createdAt = Date.now();
-//     this.deadline = dateToMilliSeconds(options.deadline);
-//     this.itemInvolved = options.itemInvolved;
-//     this.amountInvolved = options.amountInvolved;
-//     const contract = new ContractModel({
-//       promisor: {
-//         id: this.promisor.id,
-//         settled: false,
-//         partyType:
-//           typeof this.promisor.partyType == typeof Buyer ? "Buyer" : "Seller",
-//         agreed: this.promisor.agreed,
-//       },
-//       deadline: this.deadline,
-//       amountInvolved: this.amountInvolved,
-//       itemInvolved: this.itemInvolved,
-//       token: this.refToken,
-//     });
-//     //init contract url here and append contract.id to it
-//     this.contractId = contract._id;
-//     this.refUrl = `www.scrow.com/contract/${contract._id}`;
-//     contract.url = this.refUrl;
-//   }
-//   // public get agreementReached(): boolean {
-//   //   return this._agreementReached;
-//   // }
-//   // public set agreementReached() {
-//   //   if (this.promisor.agreed && this.promisee.agreed) {
-//   //     this._agreementReached = true;
-//   //   }
-//   // }
-//   public async registerPromisee(userId: string, agreed: boolean, type: string) {
-//     try {
-//       const promisee = new Promisee(userId, agreed, type);
-//       this.promisee = promisee;
-//       this.agreementReached =
-//         this.promisor.agreed && this.promisee.agreed ? true : false;
-//       const contract: ContractDoc | null = await ContractModel.findOne({
-//         _id: this.contractId,
-//       });
-//       if (!contract || contract == null) throw new Error("Invalid contract id");
-//       contract.promisee!.id = this.promisee.id;
-//       contract.promisee!.settled = false;
-//       contract.promisee!.partyType =
-//         typeof this.promisee.partyType == typeof Buyer ? "Buyer" : "Seller";
-//       contract.promisee!.agreed = this.promisee.agreed;
-//       contract.agreementReached = this.agreementReached;
-//       await contract.save();
-//     } catch (error) {
-//       throw new Error(error.message);
-//     }
-//   }
-// }
-export default class Contract{
-  this.agreementReached:boolean = this.promisor.agreed && this.promisee.agreed?true:true;
-  this.resolved:boolean = this.promisor.settled && this.promisee.settled?true:false;
-  this.initiatedAt:number = Date.now();
-  this.disputes:Array<DisputeDoc>=[];
-  this.url:string = `www.scrow.com/contracts/${this._id}`;
-  this.promisor!:Promisor;
-  this.promisee!:Promisee;
+import ContractPartyTypes from "./contractPartyTypes/contractPartyTypes";
 
-  public static registerPromisee({userId:string,type:string,agreed:boolean}):boolean{
-    let type = type.toUpperCase();
-    try {
-      if(userId == this.promisor.id){
-        throw new Error(`${userId} is already the promisor`);
-        return false;
+export default class Contract {
+  public agree(this: ContractDoc): void {
+    if (this.promisor && this.promisee) {
+      while (!this.declined) {
+        this.promisee.agreed = true;
+        this.promisee.partyType!.agreed = true;
+        if (this.promisor.agreed) this.agreementReached = true;
       }
-      if()
-    } catch (error) {
-      throw new Error(error.message)
     }
+  }
+  public pay(this: ContractDoc, client: ContractPartyTypes): Response {
+    try {
+      if (!this.promisor && !this.promisee)
+        return {
+          status: STATUS.FAILED,
+          message: MESSAGE.INVALID_CONTRACT_TYPES,
+        };
 
+      if (this.declined)
+        return { status: STATUS.FAILED, message: MESSAGE.DECLINED };
+
+      if (!this.agreementReached)
+        return {
+          status: STATUS.FAILED,
+          message: MESSAGE.NOT_AGREED,
+        };
+
+      if (this.paid)
+        return {
+          status: STATUS.FAILED,
+          message: `payment of NGN${this.amountInvolved} made already`,
+        };
+
+      // TODO: do payment logic here to pay contract.amountInvolved and notify
+      //assume everything went well
+      this.paid = true;
+      client.settled = true;
+      if (this.delivered && this.promisor!.settled && this.promisee!.settled)
+        this.resolved = true;
+      // TODO: wait and send money to the seller
+
+      return {
+        status: STATUS.SUCCESSFUL,
+        message: MESSAGE.RESOLVED,
+      };
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+  public makeDelivery(this: ContractDoc, client: ContractPartyTypes): Response {
+    if (!this.promisor && !this.promisee)
+      return { status: STATUS.FAILED, message: MESSAGE.INVALID_CONTRACT_TYPES };
+
+    if (this.declined)
+      return { status: STATUS.FAILED, message: MESSAGE.DECLINED };
+
+    if (!this.agreementReached)
+      return { status: STATUS.FAILED, message: MESSAGE.NOT_AGREED };
+
+    // TODO: notification
+    client.settled = true;
+    return { status: STATUS.SUCCESSFUL };
+  }
+
+  public confirmDelivery(this: ContractDoc): Response {
+    if (!this.promisor && !this.promisee)
+      return { status: STATUS.FAILED, message: MESSAGE.INVALID_CONTRACT_TYPES };
+    if (this.declined)
+      return { status: STATUS.FAILED, message: MESSAGE.DECLINED };
+    if (!this.agreementReached)
+      return { status: STATUS.FAILED, message: MESSAGE.NOT_AGREED };
+
+    this.delivered = true;
+    if (this.paid && this.promisor!.settled && this.promisee!.settled) {
+      this.resolved = true;
+      return { status: STATUS.SUCCESSFUL, message: MESSAGE.RESOLVED };
+    }
+    return { status: STATUS.SUCCESSFUL };
+  }
+
+  async fileDispute(this: ContractDoc, options: IDispute): Promise<Response> {
+    try {
+      if (!this.promisor && !this.promisee)
+        return {
+          status: STATUS.FAILED,
+          message: MESSAGE.INVALID_CONTRACT_TYPES,
+        };
+      if (!options) {
+        throw new Error(
+          "options :complainant,claim,against and required action missing"
+        );
+      }
+      const { complainant, claim, against, requiredAction } = options;
+      if (this.declined)
+        return { status: STATUS.FAILED, message: MESSAGE.DECLINED };
+      // NOTE: MAKE SURE {AMOUNT,ITEM_INVOLVED,DEADLINE} ARE ALL SET UPON CONTRACT INITIALIZATION
+      if (!this.deadline || this.deadline == undefined) {
+        return { status: STATUS.FAILED, message: MESSAGE.INVALID_CONTRACT };
+      }
+      if (this.deadline > Date.now()) {
+        return {
+          status: STATUS.FAILED,
+          message: "please await deadline before filing disputes",
+        };
+      }
+      const dispute: DisputeDoc = new Dispute({
+        complainant: complainant.id,
+        against: against.id,
+        claim,
+        requiredAction,
+      });
+      const isSaved = await dispute.save();
+      if (!isSaved) {
+        throw new Error("unable file dispute");
+      }
+      return { status: STATUS.SUCCESSFUL };
+      // TODO: notify ${against}
+    } catch (error) {
+      throw new Error(error.message);
+    }
   }
 }
