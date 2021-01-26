@@ -1,4 +1,5 @@
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
+import { Notification, INotifDoc } from "./notification.model";
 
 const UserSchema = new Schema({
   firstname: {
@@ -49,6 +50,10 @@ const UserSchema = new Schema({
     submitted: Boolean,
     isIdConfirmed: Boolean,
   },
+  notifications: {
+    type: Types.ObjectId,
+    ref: "Notification",
+  },
 });
 interface IdConfirmation {
   imageId: string;
@@ -69,5 +74,6 @@ export interface UserDoc extends Document {
   phone?: number;
   confirmed?: boolean;
   identityConfirmation?: IdConfirmation;
+  notification?: INotifDoc;
 }
 export const User = model<UserDoc>("User", UserSchema);

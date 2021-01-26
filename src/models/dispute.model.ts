@@ -1,12 +1,15 @@
-import { Document, Schema, model } from "mongoose";
+import { Document, Schema, model, Types } from "mongoose";
+import { User } from "./user.model";
 
 const DisputeSchema = new Schema({
-  name: {
-    type: String,
+  complainant: {
+    type: Types.ObjectId,
+    ref: "User",
     required: true,
   },
   against: {
-    type: String,
+    type: Types.ObjectId,
+    ref: "User",
     required: true,
   },
   claim: {
@@ -14,18 +17,18 @@ const DisputeSchema = new Schema({
     min: 20,
     required: true,
   },
-  actionRequired: {
+  requiredAction: {
     type: String,
-    enum: ["refund", "make delivery", "report scam"],
+    // enum: ["refund", "make delivery", "report scam"],
     required: true,
   },
 });
 
 export interface DisputeDoc extends Document {
-  name: string;
+  complainant: string;
   against: string;
   claim: string;
-  actionRequired: string;
+  requiredAction: string;
 }
 
 export const Dispute = model<DisputeDoc>("Dispute", DisputeSchema);
