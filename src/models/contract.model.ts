@@ -1,12 +1,14 @@
 import { Schema, Document, model, Types } from "mongoose";
 import { User } from "./user.model";
 import { Dispute, DisputeDoc } from "./dispute.model";
+import Contract from "../modules/contract/contract";
+import { AccountInfo } from "../modules/contract/constants";
 
 const ContractSchema = new Schema({
   promisor: {
     id: {
       type: Types.ObjectId,
-      ref: User,
+      ref: "User",
       required: true,
     },
     settled: {
@@ -25,7 +27,7 @@ const ContractSchema = new Schema({
   promisee: {
     id: {
       type: Types.ObjectId,
-      ref: User,
+      ref: "User",
       required: true,
     },
     settled: {
@@ -59,6 +61,14 @@ const ContractSchema = new Schema({
   itemInvolved: {
     type: String,
   },
+  paid: {
+    type: Boolean,
+    default: false,
+  },
+  delivered: {
+    type: Boolean,
+    default: false,
+  },
   disputes: {
     type: [Dispute],
   },
@@ -74,15 +84,25 @@ const ContractSchema = new Schema({
     type: Boolean,
     dafault: false,
   },
+  ended: {
+    type: Boolean,
+    default: false,
+  },
   url: {
     type: String,
   },
 });
 
-export interface IContractPartyTypes {
-  id: string;
+export interface PartyTypes {
+  agreed: boolean;
   settled: boolean;
-  partyType: string;
+  accountInfo?: AccountInfo;
+}
+
+export interface IContractPartyTypes {
+  id?: string;
+  settled: boolean;
+  partyType?: PartyTypes;
   agreed: boolean;
 }
 
@@ -91,14 +111,21 @@ export interface ContractDoc extends Document {
   promisee?: IContractPartyTypes;
   deadline?: number;
   createdAt?: Date;
+  paid?: boolean;
+  delivered?: boolean;
   amountInvolved?: number;
   itemInvolved?: string;
-  dispute?: Array<DisputeDoc>;
+  disputes?: Array<DisputeDoc>;
   token?: number;
   agreementReached?: boolean;
   resolved?: boolean;
   declined?: boolean;
-  url: string;
+  ended?: boolean;
+  url?: string;
 }
+ContractSchema.loadClass(Contract);
 
-export const Contract = model<ContractDoc>("Contract", ContractSchema);
+export const ContractModel = model<ContractDoc>(
+  "ContractModel",
+  ContractSchema
+);
