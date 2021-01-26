@@ -1,32 +1,45 @@
-import { IContractTypeOptions } from "../constants";
+import {
+  IContractTypeOptions,
+  IDispute,
+  DisputeActions,
+  TransactionMessages as MESSAGE,
+  TransactionStatuses as STATUS,
+  ContractResponse as Response,
+} from "../constants";
 import ContractPartyTypes from "./contractPartyTypes";
-import Contract from "../contract";
-
-declare const options: IContractTypeOptions;
 
 export default class Promisee extends ContractPartyTypes {
-  constructor() {
-    module;
+  constructor(options: IContractTypeOptions) {
     super(options);
   }
-
-  agree(): void {
-    this.partyType.agree();
+  agree() {
+    //@ts-ignore
+    this.contract.agree();
   }
 
-  settle(client: Promisee) {
+  settle(client: ContractPartyTypes) {
     return super.settle(client);
   }
-  reject(contract: Contract): boolean {
-    try {
-      if (contract.agreementReached) {
-        throw new Error("cannot reject contract: agreement reached");
-        return false;
-      }
-      contract.declined = true;
-      return true;
-    } catch (error) {
-      throw new Error(error.message);
+
+  async fileDispute(options: IDispute) {
+    return await super.fileDispute(options);
+  }
+
+  decline(): Response {
+    //@ts-ignore
+    if (this.contract.agreementReached) {
+      return {
+        status: STATUS.FAILED,
+        message:
+          "cannot decline contract: a contract agreement has been reached",
+      };
     }
+    //@ts-ignore
+    this.contract.declined = true;
+    return { status: STATUS.SUCCESSFUL };
+    // TODO: notiffy promisor
+  }
+  confrimDelivery() {
+    return super.confirmDelivery();
   }
 }

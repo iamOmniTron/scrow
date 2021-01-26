@@ -1,28 +1,24 @@
 import ContractPartyTypes from "./contractPartyTypes";
-import {
-  TransactionStatuses as STATUS,
-  IDispute,
-  IContractTypeOptions,
-} from "../constants";
+import { IContractTypeOptions, IDispute } from "../constants";
 import Contract from "../contract";
-import Promisee from "./promisee";
-
-declare const options: IContractTypeOptions;
 
 export default class Promisor extends ContractPartyTypes {
-  constructor() {
+  constructor(options: IContractTypeOptions) {
     super(options);
   }
-
-  agree(): void {
-    return this.partyType.agree();
-  }
-
-  settle(client: Promisee) {
+  settle(client: ContractPartyTypes) {
     return super.settle(client);
   }
-
-  fileDispute(options: IDispute, contract: Contract) {
-    return super.fileDispute(options, contract);
+  agree() {
+    this.agreed = true;
+    super.agree();
+    //@ts-ignore
+    if (this.contract.promisee.agreed) {
+      //@ts-ignore
+      this.contract.agreementReached = true;
+    }
+  }
+  fileDispute(options: IDispute) {
+    return super.fileDispute(options);
   }
 }
