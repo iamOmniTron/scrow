@@ -1,6 +1,22 @@
+import Seller from "./partyTypes/seller";
+import Buyer from "./partyTypes/buyer";
+import { ContractDoc } from "../../models/contract.model";
+import ContractPartyTypes from "./contractPartyTypes/contractPartyTypes";
+
 export enum TransactionStatuses {
   SUCCESSFUL = "successfull",
   FAILED = "failed",
+}
+export enum TransactionMessages {
+  DECLINED = "contract was declined",
+  NOT_AGREED = "a contract agreement must be reached",
+  RESOLVED = "contract resolved successfully",
+  INVALID_CONTRACT = "invalid contract",
+  INVALID_CONTRACT_TYPES = "contract requires a promisor and a promisee",
+}
+export interface ContractResponse {
+  status: TransactionStatuses;
+  message?: TransactionMessages | string;
 }
 
 export enum PaymentStatuses {
@@ -14,30 +30,34 @@ export interface AccountInfo {
   accountBank: string;
 }
 
-export interface IContractTypeOptions {
-  id: string;
-  agreed: boolean;
-  type: string;
-}
-
 export enum DisputeActions {
   REFUND = "refund",
   MAKE_DELIVERY = "make delivery",
+  MAKE_PAYMENT = "make payment",
   REPORT_SCAM = "report scam",
 }
 
 export interface IDispute {
-  name: string;
+  complainant: ContractPartyTypes;
+  against: ContractPartyTypes;
   claim: string;
-  against: string;
   requiredAction: DisputeActions;
 }
+export interface IContractTypeOptions {
+  id: string;
+  type: Buyer | Seller;
+}
 
-export interface IContractConstructor {
-  userId: string;
-  partyType: string;
-  itemInvolved: string;
-  amountInvolved: number;
-  deadline: string;
+export interface IPartyTypes {
   agreed: boolean;
+  agree(): void;
+}
+
+export interface IContractPartyTypes {
+  id: string;
+  agreed: boolean;
+  settled: boolean;
+  settle(client: ContractPartyTypes): ContractResponse;
+  partyType: IPartyTypes;
+  contract: any;
 }
