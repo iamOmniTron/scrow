@@ -1,4 +1,8 @@
-export default abstract class PartyTypes {
-  agreed!: boolean;
-  settled: boolean = false;
+import { IPartyTypes } from "../constants";
+
+export default abstract class PartyTypes implements IPartyTypes {
+  constructor(public agreed: boolean) {}
+  agree() {
+    this.agreed = true;
+  }
 }
