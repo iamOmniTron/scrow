@@ -1,9 +1,5 @@
 import express, { Request, Response, NextFunction, Application } from "express";
-import {
-  NODE_ENV,
-  CORS_URL,
-  ACCESS_TOKEN_SECRET,
-} from "./config/config";
+import { NODE_ENV, CORS_URL, ACCESS_TOKEN_SECRET } from "./config/config";
 import cors from "cors";
 import { User } from "./models/user.model";
 import { json, urlencoded } from "body-parser";
@@ -14,8 +10,8 @@ import logger from "morgan";
 import { connect } from "mongoose";
 import { ApolloServer } from "apollo-server-express";
 import compression from "compression";
-import { typeDefs, resolvers } from "./schema/schema";
-require('./_dbinit')();
+import { typeDefs, resolvers } from "./graphql/schema";
+require("./_dbinit")();
 const app: Application = express();
 
 app.use(compression());
