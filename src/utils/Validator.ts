@@ -14,28 +14,30 @@ export default class Validator {
   static async validateName(name: string): Promise<boolean> {
     try {
       const isValid = await this.schema.validate({ name: name });
-      if (!isValid) throw new Error("Name must have atleast 3 characters");
+      if (!isValid) return false;
       return true;
     } catch (error) {
-      throw new Error(error.message);
+      return false;
+      // throw new Error(error.message);
     }
   }
   static async validatePassword(password: string): Promise<boolean> {
     try {
       const isValid = await this.schema.validate({ password: password });
-      if (!isValid) throw new Error("Password must have a valid format");
+      if (!isValid) return false;
       return true;
     } catch (error) {
-      throw new Error(error.message);
+      return false;
+      // throw new Error(error.message);
     }
   }
   static async validateEmail(email: string): Promise<boolean> {
     try {
       const isValid = await this.schema.validate({ email: email });
-      if (!isValid) throw new Error("Invalid email");
+      if (!isValid) return false;
       return true;
     } catch (error) {
-      throw new Error(error.message);
+      return false;
     }
   }
 }

@@ -16,7 +16,7 @@ export default class Sms {
       if (!isSent) return false;
       return true;
     } catch (error) {
-      throw new InternalError();
+      return false;
     }
   }
 }

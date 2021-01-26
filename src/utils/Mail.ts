@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
     pass: GMAIL_USER_PASSWORD,
   },
 });
-
+// TODO: add templates for email
 export default class Mailer {
   static async sendConfirmationMail(
     email: string,
@@ -28,10 +28,10 @@ export default class Mailer {
     };
     try {
       const sent = await this.send(options);
-      if (!sent) throw new InternalError();
+      if (!sent) return false;
       return true;
     } catch (error) {
-      throw new Error(error.message);
+      return false;
     }
   }
 
@@ -48,10 +48,10 @@ export default class Mailer {
     };
     try {
       const sent = await this.send(options);
-      if (!sent) throw new InternalError();
+      if (!sent) return false;
       return true;
     } catch (error) {
-      throw new Error(error.message);
+      return false;
     }
   }
 
@@ -68,19 +68,19 @@ export default class Mailer {
     };
     try {
       const sent = await this.send(options);
-      if (!sent) throw new InternalError();
+      if (!sent) return false;
       return true;
     } catch (error) {
-      throw new Error(error.message);
+      return false;
     }
   }
   static async send(message: any): Promise<boolean> {
     try {
       const sent = await transporter.sendMail(message);
-      if (!sent) throw new InternalError();
+      if (!sent) return false;
       return true;
     } catch (error) {
-      throw new Error(error.message);
+      return false;
     }
   }
 }
