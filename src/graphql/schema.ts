@@ -32,11 +32,10 @@ interface ApiResponse {
   message?: any;
 }
 export const typeDefs = gql`
-type ApiResonse{
-  success: Boolean!
-  data?:Any
-  message?:Any
-}
+  type ApiResponse {
+    success: Boolean!
+    message: String
+  }
   enum VerificationMethods {
     EMAIL
     PHONE
@@ -62,11 +61,10 @@ type ApiResonse{
     users: [User!]
     user(id: ID!): User!
     hello: String!
-    login(email: String!, password: String!): APiResponse!
-    profile: APiResponse!
-    resetPassword:
+    profile: ApiResponse!
   }
   type Mutation {
+    login(email: String!, password: String!): ApiResponse!
     signup(
       firstname: String!
       lastname: String!
@@ -75,9 +73,9 @@ type ApiResonse{
       password: String!
       password2: String!
       verificationMethod: VerificationMethods!
-    ): ApiResonse!
-    confirmEmail(token: String): ApiResonse!
-    confirmSms(token: String): ApiResonse!
+    ): ApiResponse!
+    confirmEmail(token: String): ApiResponse!
+    confirmSms(token: String): ApiResponse!
   }
 `;
 
@@ -108,6 +106,33 @@ export const resolvers: IResolvers = {
       }
     },
     hello: (): string => `world`,
+    profile: async (_, __, { req }, info): Promise<ApiResponse> => {
+      const { userId, isAuth } = req;
+      try {
+        if (!isAuth && userId == null)
+          return {
+            success: false,
+            message: "not authenticated",
+          };
+
+        const user = await UserModel.findOne({ _id: userId });
+        if (!user)
+          return {
+            success: false,
+            message: "not authorized",
+          };
+
+        return {
+          success: true,
+          data: user,
+        };
+      } catch (error) {
+        return { success: false };
+      }
+    },
+  },
+
+  Mutation: {
     login: async (
       _,
       { email, password },
@@ -136,33 +161,6 @@ export const resolvers: IResolvers = {
         return { success: false };
       }
     },
-    profile: async (_, __, { req }, info): Promise<ApiResponse> => {
-      const { userId, isAuth } = req;
-      try {
-        if (!isAuth && userId == null)
-          return {
-            success: false,
-            message: "not authenticated",
-          };
-
-        const user = await UserModel.findOne({ _id: userId });
-        if (!user)
-          return {
-            success: false,
-            message: "not authorized",
-          };
-
-        return {
-          success: true,
-          data: user,
-        };
-      } catch (error) {
-        return { success: false };
-      }
-    },
-  },
-
-  Mutation: {
     signup: async (
       _,
       {
