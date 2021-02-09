@@ -10,7 +10,10 @@ import Buyer from "../partyTypes/buyer";
 import Seller from "../partyTypes/seller";
 import { isValidIdString } from "../../../helpers/stringHelpers";
 import { Dispute, DisputeDoc } from "../../../models/dispute.model";
-import Contract from "../contract";
+import {
+  ContractModel as Contract,
+  ContractDoc,
+} from "../../../models/contract.model";
 
 export default abstract class ContractPartyTypes
   implements IContractPartyTypes {
@@ -18,7 +21,7 @@ export default abstract class ContractPartyTypes
   public partyType: Seller | Buyer;
   public agreed: boolean;
   public settled!: boolean;
-  public _contract!: Contract;
+  public _contract!: ContractDoc;
   constructor(options: IContractTypeOptions) {
     let { id, type } = options;
     try {
@@ -31,10 +34,10 @@ export default abstract class ContractPartyTypes
       throw new Error(error.message);
     }
   }
-  public get contract(): Contract {
+  public get contract(): ContractDoc {
     return this._contract;
   }
-  public set contract(contract: Contract) {
+  public set contract(contract: ContractDoc) {
     this._contract = contract;
   }
   settle(client: ContractPartyTypes): Response {
