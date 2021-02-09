@@ -21,10 +21,15 @@ import { randomBytes } from "crypto";
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from "../config/config";
 
 interface LoginResponse {
-  firstname: string;
-  lastname: string;
-  email: string;
-  token: string;
+  success: boolean;
+  message?: string;
+  data?: LoginData;
+}
+interface LoginData {
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  token?: string;
 }
 interface ApiResponse {
   success: boolean;
@@ -44,11 +49,17 @@ export const typeDefs = gql`
     accessToken: String
     refreshToken: String
   }
-  type LoginResponse {
+  type LoginData {
     firstname: String!
     lastname: String!
     email: String!
     token: String!
+  }
+
+  type LoginResponse {
+    sucess: Boolean!
+    message: String
+    data: LoginData
   }
   type User {
     id: ID!
@@ -64,7 +75,7 @@ export const typeDefs = gql`
     profile: ApiResponse!
   }
   type Mutation {
-    login(email: String!, password: String!): ApiResponse!
+    login(email: String!, password: String!): LoginResponse!
     signup(
       firstname: String!
       lastname: String!
@@ -138,7 +149,7 @@ export const resolvers: IResolvers = {
       { email, password },
       context,
       info
-    ): Promise<ApiResponse> => {
+    ): Promise<LoginResponse> => {
       try {
         let user: UserDoc | null = await UserModel.findOne({ email });
         if (!user) return { success: false, message: "user not found" };
