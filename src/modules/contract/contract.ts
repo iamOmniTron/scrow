@@ -121,7 +121,7 @@ export default class Contract {
       });
       const isSaved = await dispute.save();
       if (!isSaved) {
-        throw new Error("unable file dispute");
+        throw new Error("unable to file dispute");
       }
       return { status: STATUS.SUCCESSFUL };
       // TODO: notify ${against}
