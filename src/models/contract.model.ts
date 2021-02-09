@@ -1,6 +1,7 @@
 import { Schema, Document, model, Types } from "mongoose";
 import { User } from "./user.model";
-import { Dispute, DisputeDoc } from "./dispute.model";
+import { DisputeDoc } from "./dispute.model";
+const Dispute = require("./dispute.model").schema;
 import Contract from "../modules/contract/contract";
 import { AccountInfo } from "../modules/contract/constants";
 
@@ -16,8 +17,13 @@ const ContractSchema = new Schema({
       default: false,
     },
     partyType: {
-      enum: ["Buyer", "Seller"],
-      required: true,
+      agreed: Boolean,
+      settled: Boolean,
+      accountInfo: {
+        accountName: String,
+        accountInfo: String,
+        accountBank: String,
+      },
     },
     agreed: {
       type: Boolean,
@@ -35,8 +41,13 @@ const ContractSchema = new Schema({
       default: false,
     },
     partyType: {
-      enum: ["Buyer", "Seller"],
-      required: true,
+      agreed: Boolean,
+      settled: Boolean,
+      accountInfo: {
+        accountName: String,
+        accountInfo: String,
+        accountBank: String,
+      },
     },
     agreed: {
       type: Boolean,
