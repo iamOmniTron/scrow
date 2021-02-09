@@ -11,6 +11,9 @@ import ContractPartyTypes from "./contractPartyTypes";
 export default class Promisee extends ContractPartyTypes {
   constructor(options: IContractTypeOptions) {
     super(options);
+    if (this.agreed) {
+      this.agree();
+    }
   }
   agree() {
     //@ts-ignore

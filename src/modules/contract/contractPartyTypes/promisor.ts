@@ -5,6 +5,9 @@ import Contract from "../contract";
 export default class Promisor extends ContractPartyTypes {
   constructor(options: IContractTypeOptions) {
     super(options);
+    if (this.agreed) {
+      this.agree();
+    }
   }
   settle(client: ContractPartyTypes) {
     return super.settle(client);
